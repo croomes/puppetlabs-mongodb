@@ -1,36 +1,38 @@
-Puppet::Type.type(:mongodb_database).provide(:mongodb) do
+require File.expand_path(File.join(File.dirname(__FILE__), '..', 'mongodb'))
+Puppet::Type.type(:mongodb_database).provide(:mongodb, :parent => Puppet::Provider::Mongodb) do
 
   desc "Manages MongoDB database."
 
   defaultfor :kernel => 'Linux'
 
-  commands :mongo => 'mongo'
+  def self.instances
+    dbs = mongo_command('db.getMongo().getDBs()')
+    dbs['databases'].collect do |db|
+      new(:name   => db['name'],
+          :ensure => :present)
+    end
+  end
 
-  def block_until_mongodb(tries = 10)
-    begin
-      mongo('--quiet', '--eval', 'db.getMongo()')
-    rescue => e
-      debug('MongoDB server not ready, retrying')
-      sleep 2
-      if (tries -= 1) > 0
-        retry
-      else
-        raise e
+  # Assign prefetched dbs based on name.
+  def self.prefetch(resources)
+    dbs = instances
+    resources.keys.each do |name|
+      if provider = dbs.find { |db| db.name == name }
+        resources[name].provider = provider
       end
     end
   end
 
   def create
-    mongo(@resource[:name], '--quiet', '--eval', "db.dummyData.insert({\"created_by_puppet\": 1})")
+    mongo_command('db.dummyData.insert({"created_by_puppet": 1})', {'db' => @resource[:name]})
   end
 
   def destroy
-    mongo(@resource[:name], '--quiet', '--eval', 'db.dropDatabase()')
+    mongo_command('db.dropDatabase()', {'db' => @resource[:name]})
   end
 
   def exists?
-    block_until_mongodb(@resource[:tries])
-    mongo("--quiet", "--eval", 'db.getMongo().getDBNames()').chomp.split(",").include?(@resource[:name])
+    !(@property_hash[:ensure] == :absent or @property_hash[:ensure].nil?)
   end
 
 end

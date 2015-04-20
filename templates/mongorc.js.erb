@@ -1,0 +1,12 @@
+function authRequired() {
+  try {
+    return db.serverCmdLineOpts().code == 13
+  }
+  catch (err) {
+    return false;
+  }
+}
+
+if (authRequired()) {
+  db.getSiblingDB("admin").auth("<%= @admin_username %>", "<%= @admin_password %>")
+}

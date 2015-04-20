@@ -1,5 +1,5 @@
-Puppet::Type.newtype(:mongodb_user) do
-  @doc = 'Manage a MongoDB user. This includes management of users password as well as privileges.'
+Puppet::Type.newtype(:mongodb_user_admin) do
+  @doc = 'Manage a MongoDB user administrator.  Required for managing other users.'
 
   ensurable
 
@@ -14,23 +14,16 @@ Puppet::Type.newtype(:mongodb_user) do
   end
 
   newproperty(:username) do
-    desc "The name of the user."
+    desc "The name of the user administrator."
     defaultto { @resource[:name] }
   end
 
-  newparam(:password) do
-    desc "The user's password.  Must be the plaintext password."
-    defaultto do
-      fail("The user's plaintext password must be set.") if provider.database == :absent
-    end
-  end
 
-  newproperty(:database) do
-    desc "The user's target database."
+  newparam(:password) do
+    desc "The password of the user administrator.  Must be the plaintext password."
     defaultto do
-      fail("Parameter 'database' must be set") if provider.database == :absent
+      fail("The user administrator's plaintext password must be set.") if provider.database == :absent
     end
-    newvalues(/^\w+$/)
   end
 
   newparam(:tries) do
@@ -58,7 +51,7 @@ Puppet::Type.newtype(:mongodb_user) do
   end
 
   newproperty(:password_hash) do
-    desc "The password hash of the user. Use mongodb_password() for creating hash."
+    desc "The password hash of the user administrator. Use mongodb_password() for creating hash."
     defaultto do
       fail("Property 'password_hash' must be set. Use mongodb_password() for creating hash.") if provider.database == :absent
     end
